@@ -46,17 +46,21 @@ cleanup from the "jobend" configuration option.
 """
 __author__ = "Owen Embury"
 
-from . import batchsys
-from .config import config
-from .job import Job
-
-
-# Try setting the default
-if 'platform' in config['pyjob']:
-    cluster = batchsys.get()
+from pyjob.config import config
+from pyjob.job import Job
 
 
 def use(platform):
     """Set the default batch system"""
-    global cluster
-    cluster = batchsys.get(platform)
+    global cluster, _batchmod
+    import importlib
+    _batchmod = importlib.import_module(f'pyjob.backend.{platform}')
+    cluster = _batchmod.BatchSystem()
+
+
+# Try setting the default
+if 'platform' in config['pyjob']:
+    use(config['pyjob']['platform'])
+else:
+    from pyjob.core import NoBatchSystem
+    cluster = NoBatchSystem()

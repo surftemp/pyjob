@@ -4,6 +4,7 @@ _log = logging.getLogger(__name__)
 
 
 def split(s):
+    """Split input into a list of lines"""
     return s.splitlines() if isinstance(s, str) else s
 
 
@@ -58,7 +59,7 @@ class Job():
         if hasattr(self, 'ind'):
             return f'{self.id}-{self.ind}'
         else:
-            return getattr(self, id, 'job')
+            return getattr(self, 'id', 'job')
 
     @property
     def shebang(self):
