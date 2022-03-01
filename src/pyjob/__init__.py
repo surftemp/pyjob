@@ -49,6 +49,8 @@ __author__ = "Owen Embury"
 from pyjob.config import config
 from pyjob.job import Job
 
+__all__ = ['config', 'Job', 'use']
+
 
 def use(platform):
     """Set the default batch system"""
