@@ -1,10 +1,12 @@
 import argparse
 import collections
 import cmd
+import re
 import os
 
 import pyjob
 
+rresub = re.compile(r'_retry(\d+)$')
 
 parse_checklog = argparse.ArgumentParser()
 parse_checklog.add_argument('path', help='Log file directory to scan')
@@ -28,6 +30,17 @@ def listdirs(path, pattern=''):
             if d.is_dir() and d.name.startswith(pattern)]
 
 
+def append_retry(path):
+    """Append _retryX to the logpath"""
+    if path.endswith('/'):
+        path = path[:-1]
+    m = rresub.search(path)
+    if m:
+        return path[:m.start()] + '_retry{0:d}'.format(int(m.group(1))+1)
+    else:
+        return path + '_retry1'
+
+
 class PyjobShell(cmd.Cmd):
     intro = 'pyjob interactive shell. Type help or ? to list commands\n'
     prompt = 'pyjob>>> '
@@ -40,8 +53,8 @@ class PyjobShell(cmd.Cmd):
 
     def do_checklog(self, arg):
         """Read the job shell and stderr files in path"""
-        path = arg
-        files = [f.path for f in os.scandir(path) if f.name.endswith('shell')]
+        self.logpath = arg.split()[0]
+        files = [f.path for f in os.scandir(self.logpath) if f.name.endswith('shell')]
         # Array jobs will be returned a list, so flatten possible list-of-lists
         jobs = list(flatten(pyjob.cluster.parse_script(f) for f in files))
         self.jobs_done = [j for j in jobs if j.done]
@@ -59,10 +72,17 @@ class PyjobShell(cmd.Cmd):
             path = ''
         return listdirs(path, text)
 
+    def no_log_loaded(self):
+        if not hasattr(self, 'results'):
+            print('ERROR - load a log directory with checklog first')
+            return True
+
     def do_jobs(self, arg):
         """Show details on failed jobs"""
-        if not getattr(self, 'results', None):
-            print('ERROR - load a log directory with checklog first')
+        if self.no_log_loaded():
+            return
+        if not self.jobs_fail:
+            print('No failed jobs')
             return
         for r in self.results:
             jobs = [j for j in self.jobs_fail if j.result == r]
@@ -72,8 +92,10 @@ class PyjobShell(cmd.Cmd):
 
     def do_host(self, arg):
         """List hosts where job failed"""
-        if not getattr(self, 'results', None):
-            print('ERROR - load a log directory with checklog first')
+        if self.no_log_loaded():
+            return
+        if not self.jobs_fail:
+            print('No failed jobs')
             return
         for r in self.results:
             jobs = [j for j in self.jobs_fail if j.result == r]
@@ -81,6 +103,32 @@ class PyjobShell(cmd.Cmd):
             print(f"{self.results[r]:6d} {r}")
             for h in hosts:
                 print(f"{hosts[h]:6d} {h}")
+
+    def do_cat(self, arg):
+        """Print job shell / stderr to screen"""
+        if self.no_log_loaded():
+            return
+        jid = arg.split()[0]
+        jobs = [j for j in self.jobs_fail if j.jobid == jid]
+        if not jobs:
+            jobs = [j for j in self.jobs_done if j.jobid == jid]
+        if jobs:
+            j = jobs[0]
+            print(j)
+            print('job stderr:\n' + ''.join(j.stderr))
+            print('batch system:\n' + ''.join(j.baterr))
+        else:
+            print(f'No such job: {jid}')
+
+    def do_resub(self, arg):
+        """Resubmit failed jobs to cluster system"""
+        logpath = append_retry(self.logpath)
+        print(f'Creating outputdir {logpath}')
+        for j in self.jobs_fail:
+            if 'array' in j.options:
+                j.options['array'] = j.ind
+            j.options['logpath'] = logpath
+            pyjob.cluster.submit(j)
 
 
 def main():
