@@ -63,6 +63,8 @@ class PyjobShell(cmd.Cmd):
         print(f"{len(self.jobs_done)} completed")
         print("---")
         print(f"{len(self.jobs_fail)} incomplete")
+        for r in self.results:
+            print(f"{self.results[r]:6d} {r}")
 
     def complete_checklog(self, text, line, begidx, endidx):
         ipos = line.rfind(' ')
@@ -124,6 +126,7 @@ class PyjobShell(cmd.Cmd):
         """Resubmit failed jobs to cluster system"""
         logpath = append_retry(self.logpath)
         print(f'Creating outputdir {logpath}')
+        os.makedirs(logpath, exist_ok=True)
         for j in self.jobs_fail:
             if 'array' in j.options:
                 j.options['array'] = j.ind

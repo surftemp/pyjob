@@ -124,9 +124,9 @@ class BatchSystemBase:
             return
 
         bsub = subprocess.run(self.SUBMIT_CMD, input=script, capture_output=True,
-                              text=True, check=True)
+                              text=True)
         match = self.SUBMIT_OUT.match(bsub.stdout)
-        if match:
+        if bsub.returncode == 0 and match:
             jobid = match.group('id')
             fname = job.stdoutname.format(jobid=jobid, ind='arr') + '.shell'
             with open(fname, 'w') as fh:
