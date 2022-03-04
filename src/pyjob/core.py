@@ -123,6 +123,9 @@ class BatchSystemBase:
             print(script)
             return
 
+        # Create log directory if required
+        os.makedirs(os.path.dirname(job.stdoutname), exist_ok=True)
+        # And submit to cluster system
         bsub = subprocess.run(self.SUBMIT_CMD, input=script, capture_output=True,
                               text=True)
         match = self.SUBMIT_OUT.match(bsub.stdout)
