@@ -56,4 +56,24 @@ pyjob.cluster.submit(job)
 
 ## Checking log files
 
-need to add check_log equivalent
+Log files can be checked with the pyjob interactive shell. e.g
+```
+$ pyjob 
+pyjob interactive shell. Type help or ? to list commands
+
+pyjob>>> checklog test/argo-sst_avhrr-n14
+314 completed
+---
+10 incomplete
+    10 FAIL 1
+```
+Currently supported commands are:
+* `checklog` read a directory of log files
+* `jobs` list failed jobs
+* `host` list hosts where failures occured
+* `cat <jobid>` show the shell and err file for the specified job
+* `setopt <opt> <value>` override job setting (e.g. `setopt memlimit=16000`)
+* `resub` resubmit failed jobs
+
+
+need to add old check_log equivalent
