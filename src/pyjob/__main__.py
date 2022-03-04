@@ -60,6 +60,7 @@ class PyjobShell(cmd.Cmd):
         self.jobs_done = [j for j in jobs if j.done]
         self.jobs_fail = [j for j in jobs if not j.done]
         self.results = collections.Counter([j.result for j in self.jobs_fail])
+        self.jobopts = {}   # Empty dict for overriding job options
         print(f"{len(self.jobs_done)} completed")
         print("---")
         print(f"{len(self.jobs_fail)} incomplete")
@@ -122,12 +123,25 @@ class PyjobShell(cmd.Cmd):
         else:
             print(f'No such job: {jid}')
 
+    def do_setopt(self, arg):
+        """Override a job option when resubmitting"""
+        opts = arg.split(maxsplit=1)
+        if not opts:
+            print('Usage: setopt option [value]')
+        elif len(opts) == 1:
+            if opts[0] in self.jobopts:
+                del self.jobopts[opts[0]]
+        else:
+            self.jobopts[opts[0]] = opts[1]
+        print(self.jobopts)
+
     def do_resub(self, arg):
         """Resubmit failed jobs to cluster system"""
         logpath = append_retry(self.logpath)
         print(f'Creating outputdir {logpath}')
         os.makedirs(logpath, exist_ok=True)
         for j in self.jobs_fail:
+            j.options.update(self.jobopts)
             if 'array' in j.options:
                 j.options['array'] = j.ind
             j.options['logpath'] = logpath
