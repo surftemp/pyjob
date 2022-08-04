@@ -124,7 +124,9 @@ class BatchSystemBase:
             return
 
         # Create log directory if required
-        os.makedirs(os.path.dirname(job.stdoutname), exist_ok=True)
+        logdir =  os.path.dirname(job.stdoutname)
+        if logdir:
+            os.makedirs(logdir, exist_ok=True)
         # And submit to cluster system
         bsub = subprocess.run(self.SUBMIT_CMD, input=script, capture_output=True,
                               text=True)
