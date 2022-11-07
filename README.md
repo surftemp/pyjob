@@ -20,7 +20,7 @@ python -m pip install .
 To install in developer mode (i.e. so updates to pyjob source files will take
 immediate effect without needing to reinstall) use:
 ```bash
-python -m pip install -e . --prefix=~/.local
+python -m pip install -e .
 ```
 
 # Getting Started
