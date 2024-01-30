@@ -53,14 +53,22 @@ class PyjobShell(cmd.Cmd):
 
     def do_checklog(self, arg):
         """Read the job shell and stderr files in path"""
-        self.logpath = arg.split()[0]
-        files = [f.path for f in os.scandir(self.logpath) if f.name.endswith('shell')]
-        # Array jobs will be returned a list, so flatten possible list-of-lists
-        jobs = list(flatten(pyjob.cluster.parse_script(f) for f in files))
-        self.jobs_done = [j for j in jobs if j.done]
-        self.jobs_fail = [j for j in jobs if not j.done]
-        self.results = collections.Counter([j.result for j in self.jobs_fail])
-        self.jobopts = {}   # Empty dict for overriding job options
+        parts = arg.split()
+        if not parts:
+            if hasattr(self, 'logpath'):
+                print(f'Log path: {self.logpath}')
+            else:
+                print('Usage: checklog log_path')
+                return
+        else:
+            self.logpath = parts[0]
+            files = [f.path for f in os.scandir(self.logpath) if f.name.endswith('shell')]
+            # Array jobs will be returned a list, so flatten possible list-of-lists
+            jobs = list(flatten(pyjob.cluster.parse_script(f) for f in files))
+            self.jobs_done = [j for j in jobs if j.done]
+            self.jobs_fail = [j for j in jobs if not j.done]
+            self.results = collections.Counter([j.result for j in self.jobs_fail])
+            self.jobopts = {}   # Empty dict for overriding job options
         print(f"{len(self.jobs_done)} completed")
         print("---")
         print(f"{len(self.jobs_fail)} incomplete")
