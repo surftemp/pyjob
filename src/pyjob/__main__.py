@@ -3,6 +3,7 @@ import collections
 import cmd
 import re
 import os
+import shlex
 
 import pyjob
 
@@ -53,18 +54,28 @@ class PyjobShell(cmd.Cmd):
 
     def do_checklog(self, arg):
         """Read the job shell and stderr files in path"""
-        parts = arg.split()
-        if not parts:
-            if hasattr(self, 'logpath'):
+        if not arg:
+            if hasattr(self, 'results'):
                 print(f'Log path: {self.logpath}')
             else:
                 print('Usage: checklog log_path')
                 return
         else:
-            self.logpath = parts[0]
-            files = [f.path for f in os.scandir(self.logpath) if f.name.endswith('shell')]
+            try:
+                files = os.scandir(arg)
+                files = [f.path for f in files if f.name.endswith('shell')]
+                if not files:
+                    print(f'No pyjob files found in {arg}')
+                    return
+            except FileNotFoundError:
+                print(f'No such file or directory: {arg}')
+                return
+            except NotADirectoryError:
+                print(f'Not a directory: {arg}')
+                return
             # Array jobs will be returned a list, so flatten possible list-of-lists
             jobs = list(flatten(pyjob.cluster.parse_script(f) for f in files))
+            self.logpath = arg
             self.jobs_done = [j for j in jobs if j.done]
             self.jobs_fail = [j for j in jobs if not j.done]
             self.results = collections.Counter([j.result for j in self.jobs_fail])
@@ -92,10 +103,16 @@ class PyjobShell(cmd.Cmd):
         """Show details on failed jobs"""
         if self.no_log_loaded():
             return
-        if not self.jobs_fail:
+        toshow = shlex.split(arg) or self.results
+        if 'DONE' in toshow:
+            toshow.remove('DONE')
+            print(f"{len(self.jobs_done):6d} DONE")
+            for j in self.jobs_done:
+                print(f'{j.jobid} : {j.command[-1]}')
+        if toshow and not self.jobs_fail:
             print('No failed jobs')
             return
-        for r in self.results:
+        for r in toshow:
             jobs = [j for j in self.jobs_fail if j.result == r]
             print(f"{self.results[r]:6d} {r}")
             for j in jobs:
@@ -105,10 +122,7 @@ class PyjobShell(cmd.Cmd):
         """List hosts by job result code: host [result]"""
         if self.no_log_loaded():
             return
-        if arg:
-            toshow = arg.split()
-        else:
-            toshow = self.results
+        toshow = shlex.split(arg) or self.results
         if 'DONE' in toshow:
             toshow.remove('DONE')
             hosts = collections.Counter([i.host for i in self.jobs_done])
@@ -118,7 +132,7 @@ class PyjobShell(cmd.Cmd):
         if toshow and not self.jobs_fail:
             print('No failed jobs')
             return
-        for r in self.results:
+        for r in toshow:
             jobs = [j for j in self.jobs_fail if j.result == r]
             hosts = collections.Counter([i.host for i in jobs])
             print(f"{self.results[r]:6d} {r}")
