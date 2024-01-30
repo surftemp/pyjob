@@ -94,10 +94,20 @@ class PyjobShell(cmd.Cmd):
                 print(f'{j.jobid} : {j.command[-1]}')
 
     def do_host(self, arg):
-        """List hosts where job failed"""
+        """List hosts by job result code: host [result]"""
         if self.no_log_loaded():
             return
-        if not self.jobs_fail:
+        if arg:
+            toshow = arg.split()
+        else:
+            toshow = self.results
+        if 'DONE' in toshow:
+            toshow.remove('DONE')
+            hosts = collections.Counter([i.host for i in self.jobs_done])
+            print(f"{len(self.jobs_done):6d} DONE")
+            for h in hosts:
+                print(f"{hosts[h]:6d} {h}")
+        if toshow and not self.jobs_fail:
             print('No failed jobs')
             return
         for r in self.results:
@@ -110,6 +120,9 @@ class PyjobShell(cmd.Cmd):
     def do_cat(self, arg):
         """Print job shell / stderr to screen"""
         if self.no_log_loaded():
+            return
+        if not arg:
+            print('Usage: cat jobid')
             return
         jid = arg.split()[0]
         jobs = [j for j in self.jobs_fail if j.jobid == jid]

@@ -102,6 +102,7 @@ class BatchSystemBase:
 
         prolog = self.encode_options(opts)
         prolog += ['#PYJOB setup']
+        prolog += ['echo "pyjob: host: $(hostname -s)">&2']
         prolog += [f'export {k}=${v}' for k, v in self.ENVVAR.items()]
         prolog += self.JOBSETUP
         prolog += cfg.get('jobsetup', '').splitlines()

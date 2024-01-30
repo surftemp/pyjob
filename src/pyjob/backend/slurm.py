@@ -4,7 +4,7 @@ Backend for using Slurm Workload Manager
 import re
 from pyjob.core import BatchSystemBase, trap_run, str2arr, arr2str
 
-rcancel = re.compile(r'slurmstepd:.*JOB (\d+) ON (\w+) CANCELLED.*DUE TO ([^,]+)')
+rcancel = re.compile(r'slurmstepd:.*JOB (\d+) ON (\w+) CANCELLED.*DUE TO ([\w\s]+)')
 due2map = {
     'NODE FAILURE': 'NODEFAIL',
     'TIME LIMIT': 'TIMEOUT',
@@ -97,7 +97,10 @@ class BatchSystem(BatchSystemBase):
         job.stderr = []
         job.baterr = []
         for line in lines:
-            if line.startswith('cpu-bind=MASK'):
+            if line.startswith('pyjob:'):
+                host = line.partition('host:')[2].split()
+                job.host = host[0] if host else ''
+            elif line.startswith('cpu-bind=MASK'):
                 job.host = line[16:line.index(',')]
             elif line.startswith('srun:') or line.startswith('slurmstepd:'):
                 job.baterr.append(line)
@@ -126,7 +129,8 @@ class BatchSystem(BatchSystemBase):
             m = rcancel.match(line)
             if m:
                 job.host = m.group(2)
-                job.result = due2map.get(m.group(3), m.group(3))
+                result = m.group(3).strip()
+                job.result = due2map.get(result, result)
                 break
             if 'Timed out waiting' in line:
                 job.result = 'TIMEOUT'
