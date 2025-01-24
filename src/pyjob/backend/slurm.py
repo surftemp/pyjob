@@ -30,6 +30,8 @@ class BatchSystem(BatchSystemBase):
             hdr.append('-p {}'.format(options['queue']))
         if 'account' in options:
             hdr.append('-A {}'.format(options['account']))
+        if 'qos' in options:
+            hdr.append('-q {}'.format(options['qos']))
         if 'array' in options:
             hdr.append('-a {}'.format(arr2str(options['array'])))
         if 'runtime' in options:
@@ -65,6 +67,8 @@ class BatchSystem(BatchSystemBase):
                 opts['queue'] = line[3:]
             elif line.startswith('-A '):
                 opts['account'] = line[3:]
+            elif line.startswith('-q '):
+                opts['qos'] = line[3:]
             elif line.startswith('-a '):
                 opts['array'] = str2arr(line[3:])
             elif line.startswith('-t '):
