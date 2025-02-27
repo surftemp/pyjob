@@ -142,7 +142,7 @@ class BatchSystem(BatchSystemBase):
             elif 'CANCELLED' in line:
                 job.result = 'KILLED'
                 break
-            elif 'Out Of Memory' in line or 'oom-kill' in line:
+            elif 'Out Of Memory' in line or 'oom-kill' in line or 'oom_kill' in line:
                 job.result = 'OOMEMORY'
                 break
             elif 'Exited with exit code' in line:
